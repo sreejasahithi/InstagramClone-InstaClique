@@ -1,0 +1,3 @@
+let userid = "";
+
+export { userid };

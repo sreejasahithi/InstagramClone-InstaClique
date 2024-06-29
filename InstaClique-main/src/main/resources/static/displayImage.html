@@ -1,0 +1,233 @@
+<template>
+    <title>Image Display and Comment and like and share</title>
+
+
+
+    <div id="app">
+        <input type="text" v-model="userId" placeholder="Enter User ID...">
+        <button @click="displayImages">Display Images</button>
+        <div v-if="imageData">
+            <div v-for="(image, postId) in imageData" :key="postId">
+                <template v-if="image.type === 'image'">
+                    <img :src="image.data" alt="Post Image" @click="toggleComment(postId)">
+                </template>
+                <template v-else-if="image.type === 'video'">
+                    <video :src="image.data" controls @click="toggleComment(postId)"></video>
+                </template>
+                <div v-if="postId === selectedPostId">
+                    <div class="like-section">
+                        <span>Like: {{ likesData[postId] || 0 }}</span>
+                    </div>
+                    <div class="comment-section">
+                        <input type="text" v-model="userId2" placeholder="Enter User ID 2...">
+                        <input type="text" v-model="comment" placeholder="Enter Comment...">
+                        <button @click="sendComment">Send Comment</button>
+                        <button @click="sendLike">Like</button>
+                        <button @click="viewAllComments(postId)">View All Comments</button>
+                        <div v-if="commentsData && commentsData[postId]">
+                            <div v-for="(comment, userId) in commentsData[postId]" :key="userId" class="comment">
+                                <b>{{ userId }}:</b> {{ comment }}
+                            </div>
+                        </div>
+                    </div>
+                    <button class="share-button" @click="fetchSharedList(postId)">Share</button>
+                    <div v-if="sharedData && sharedData[postId]">
+                        <h3>Shared Data</h3>
+                        <ul>
+                            <li v-for="(value, key) in sharedData[postId]" :key="key" class="shared-item" @click="share(image, postId, key, value)">
+                                {{ key }}: {{ value }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+</template>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                userId: '',
+                userId2: "niki_123",
+                comment: '',
+                imageData: null,
+                selectedPostId: null,
+                commentsData: {}, // Object to store comments for each postId
+                likesData: {}, // Object to store likes count for each postId
+                sharedData: {} // Object to store shared data for each postId
+            },
+            methods: {
+                displayImages() {
+                    fetch(`/getPhoto`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.imageData = {};
+                        for (let postId in data) {
+                            let mediaType = data[postId].type;
+                            this.imageData[postId] = {
+                                type: mediaType,
+                                data: `data:${mediaType === 'image' ? 'image/jpeg' : 'video/mp4'};base64,${data[postId].data}`
+                            };
+                            // Fetch likes data for each post
+                            this.fetchLikes(postId);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                fetchLikes(postId) {
+                    fetch(`/getLikes/${postId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Store likes count data in likesData object
+                        this.$set(this.likesData, postId, data);
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                toggleComment(postId) {
+                    if (this.selectedPostId === postId) {
+                        // If already selected, deselect
+                        this.selectedPostId = null;
+                    } else {
+                        // Otherwise, select this postId
+                        this.selectedPostId = postId;
+                    }
+                },
+                sendComment() {
+                    if (!this.comment || !this.selectedPostId) {
+                        console.error('All fields are required');
+                        return;
+                    }
+
+                    let formData = new FormData();
+                    formData.append('postId', this.selectedPostId);
+                    //formData.append('commentFromId', this.userId2);
+                    formData.append('commentData', this.comment);
+                    
+                    fetch('/makeComment', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+                        // Reset fields after sending comment
+                       // this.userId2 = '';
+                        this.comment = '';
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                sendLike() {
+                    if (!this.selectedPostId) {
+                        console.error('All fields are required');
+                        return;
+                    }
+
+                    let formData = new FormData();
+                    formData.append('postId', this.selectedPostId);
+                   // formData.append('likeFromId', this.userId2);
+                    
+                    fetch('/Like', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+                        // Update likes count after sending like
+                        this.fetchLikes(this.selectedPostId);
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                viewAllComments(postId) {
+                    fetch(`/getComments/${postId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Store comments data in commentsData object
+                        this.$set(this.commentsData, postId, data);
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                fetchSharedList(postId) {
+                    console.log('Fetching shared list...');
+                    fetch(`/network/followers/${this.userId2}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Received shared data:', data);
+                        // Store the shared data
+                        this.$set(this.sharedData, postId, data);
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                share(image, postId, key, value) {
+                	 const formData = new FormData();
+                	   formData.append('userId2', this.userId2);
+                	    formData.append('file', this.imageData[postId].data); 
+                	    formData.append('contentType', this.imageData[postId].type);
+                	  
+                	    formData.append('value', value);
+						console.log(this.imageData[postId]);
+                	    fetch(`/network/share/post`, {
+                	        method: 'POST',
+                	        body: formData
+                	    })
+                	    .then(response => {
+                	        if (!response.ok) {
+                	            throw new Error('Network response was not ok');
+                	        }
+                	        return response.text(); 
+                	    })
+                	    .then(data => {
+                	        
+                	        console.log(data);
+                	    })
+                	    .catch(error => console.error('Error:', error));
+                },
+            }
+        });
+    </script>
+
+
+<style>
+    img ,video{
+        max-width: 400px; /* Set the maximum width of the image */
+        height: auto; /* Maintain aspect ratio */
+        margin-bottom: 10px; /* Add margin bottom between images */
+        display: block; /* Display images as block elements */
+    }
+    .comment-section {
+        margin-top: 10px; /* Add margin top for the comment section */
+    }
+    .share-button {
+        margin-top: 10px; /* Add margin top for the share button */
+    }
+    .shared-item {
+        cursor: pointer; /* Change cursor to pointer to indicate clickable element */
+    }
+</style>

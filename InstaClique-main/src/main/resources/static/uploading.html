@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Form</title>
+    <style>
+        img, video {
+            max-width: 400px; /* Set the maximum width */
+            height: auto; /* Maintain aspect ratio */
+            margin-bottom: 10px; /* Add margin bottom between images/videos */
+            display: block; /* Display as block elements */
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <input type="text" v-model="userId" placeholder="Enter User ID...">
+        <input type="text" v-model="contentType" placeholder="Enter Content Type...">
+        <input type="file" ref="fileInput" accept="image/*, video/*" @change="handleFileUpload">
+        <button @click="submit">Submit</button>
+        <button @click="displayMedia">Display</button> <!-- Button to display images -->
+        <div v-if="responseMessage">{{ responseMessage }}</div>
+        <div v-if="mediaData">
+            <div v-for="(media, postId) in mediaData" :key="postId">
+                <template v-if="media.type === 'image'">
+                    <img :src="media.data" alt="Post Image" @click="showDeleteButton(postId)">
+                </template>
+                <template v-else-if="media.type === 'video'">
+                    <video :src="media.data" controls @click="showDeleteButton(postId)"></video>
+                </template>
+                <button v-if="postId === selectedPostId" @click="deleteMedia(postId)">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                userId: null,
+                contentType: '',
+                file: null,
+                responseMessage: '',
+                mediaData: null,
+                selectedPostId: null
+            },
+            methods: {
+                handleFileUpload(event) {
+                    this.file = event.target.files[0];
+                },
+                submit() {
+                    if (!this.contentType || !this.file) {
+                        console.error('All fields are required');
+                        return;
+                    }
+
+                    let formData = new FormData();
+                   // formData.append('userId', this.userId);
+                    formData.append('content_type', this.contentType);
+                    if(this.contentType==="image"){
+                    	 formData.append('image', this.file); 
+                         formData.append('video', null);
+                    }
+                    if(this.contentType==="video"){
+                   	 formData.append('image', null); 
+                        formData.append('video', this.file);
+                   }
+                   
+                    console.log(this.file);
+
+                    fetch('/insertPost', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+                        this.responseMessage = data;
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                displayMedia() {
+                    fetch(`/getPhoto`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.mediaData = {};
+                        for (let postId in data) {
+                            let mediaType = data[postId].type;
+                            this.mediaData[postId] = {
+                                type: mediaType,
+                                data: `data:${mediaType === 'image' ? 'image/jpeg' : 'video/mp4'};base64,${data[postId].data}`
+                            };
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                },
+                showDeleteButton(postId) {
+                    this.selectedPostId = postId;
+                },
+                deleteMedia(postId) {
+                    fetch(`/deletePost/${postId}`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+                        // After deleting, remove the media from the mediaData object
+                        Vue.delete(this.mediaData, postId);
+                    })
+                    .catch(error => console.error('Error:', error));
+                }
+            }
+        });
+    </script>
+</body>
+</html>

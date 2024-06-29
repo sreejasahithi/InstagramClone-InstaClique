@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@fortawesome/vue-fontawesome": "^3.0.6",
+    "fontawesome": "^5.6.3"
+  }
+}
