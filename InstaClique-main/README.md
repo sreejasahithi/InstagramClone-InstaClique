@@ -1,2 +1,1 @@
-# InstaClique
-Replicated Instagram's core features while incorporating various design patterns, GRASP, and SOLID principles.  Demonstrated strong software engineering practices and advanced design skills through this project. Implemented features such as photo sharing, user profiles, and social interactions with a focus on usability .
+Developed a replica of Instagram's core functionalities using Java Spring Boot, showcasing strong software engineering practices and advanced design skills. Incorporated GRASP and SOLID principles to implement features such as photo sharing, user profiles, following, and social interactions, Posts, Feed and many more with a focus on usability and user experience.
