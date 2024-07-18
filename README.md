@@ -1,1 +1,5 @@
-Developed a replica of Instagram's core functionalities using Java Spring Boot, showcasing strong software engineering practices and advanced design skills. Incorporated GRASP and SOLID principles to implement features such as photo sharing, user profiles, following, and social interactions, Posts, Feed and many more with a focus on usability and user experience.
+Developed a replica of Instagram's core functionalities using Java Spring Boot and MongoDB,
+showcasing strong software engineering practices and advanced design skills. Followed MVC
+architecture and incorporated GRASP and SOLID principles to implement features such as post
+sharing, user profiles, following, social interactions, posts, feed, and many more with a focus on
+usability and user experience.
